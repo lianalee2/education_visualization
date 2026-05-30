@@ -1,0 +1,589 @@
+/* ================================================================= */
+/* 现代可视化项目通用样式表 - style.css                                */
+/* ================================================================= */
+
+/* 1. 现代基础重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 15px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans CJK SC", sans-serif;
+  color: #1a202c;
+  background-color: #fafbfc;
+  line-height: 1.7;
+}
+
+/* 2. 顶部固定导航栏与动态进度条 */
+.global-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #e2e8f0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.header-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 14px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.03em;
+  color: #0f172a;
+}
+
+.story-nav {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.25s ease;
+  position: relative;
+  padding: 4px 0;
+}
+
+.nav-link:hover, .nav-link.active {
+  color: #0f172a;
+}
+
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #0f172a;
+}
+
+.progress-bar {
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+  transition: width 0.1s linear;
+}
+
+/* 3. 故事开场导言区 (Hero Layout) */
+.hero-section {
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  padding: 120px 40px 60px;
+  background: radial-gradient(circle at 80% 20%, #f1f5f9 0%, #fafbfc 100%);
+}
+
+.hero-content {
+  max-width: 840px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.meta-tag {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 6px 14px;
+  border-radius: 30px;
+  display: inline-block;
+  margin-bottom: 24px;
+}
+
+.hero-content h1 {
+  font-size: clamp(2rem, 3.5vw, 3.4rem);
+  line-height: 1.3;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  margin-bottom: 24px;
+}
+
+.lead-text {
+  font-size: clamp(1.1rem, 1.3vw, 1.3rem);
+  color: #475569;
+  line-height: 1.8;
+  margin-bottom: 48px;
+}
+
+.scroll-arrow {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #94a3b8;
+  animation: bounce 2s infinite;
+}
+
+/* 4. 故事分步主网格布局 (Scrollytelling Grid) */
+.story-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 40px 100px;
+}
+
+.story-step-block {
+  padding: 80px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.step-grid {
+  display: block; /* 传统块流，便于 WeasyPrint 或 D3 自适应容器 */
+}
+
+/* 响应式多栏布局，中大屏幕使用网格形态 */
+@media (min-width: 1024px) {
+  .step-grid {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+  .narrative-side {
+    display: table-cell;
+    width: 32%;
+    vertical-align: top;
+    padding-right: 48px;
+  }
+  .visualization-side {
+    display: table-cell;
+    width: 68%;
+    vertical-align: top;
+  }
+  #step-1 .narrative-side {
+    width: 24%;
+    padding-right: 32px;
+  }
+  #step-1 .visualization-side {
+    width: 76%;
+  }
+}
+
+/* 5. 左侧固定叙事文本排版 */
+.sticky-text {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 100px; /* 预留导航栏高度 */
+}
+
+.step-number {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.narrative-side h2 {
+  font-size: 1.8rem;
+  color: #0f172a;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.narrative-side p {
+  color: #475569;
+  margin-bottom: 20px;
+  font-size: 1.05rem;
+}
+
+.insight-card {
+  background: #ffffff;
+  border-left: 4px solid #0f172a;
+  padding: 16px 20px;
+  border-radius: 0 12px 12px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  margin-top: 24px;
+}
+
+.insight-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #0f172a;
+}
+
+.insight-card p {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin-bottom: 0;
+  line-height: 1.6;
+}
+
+/* 6. 交互控制组件设计 */
+.control-panel {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.control-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.btn-group {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.control-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+  color: #0f172a;
+}
+
+.control-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 7. 右侧右侧画布包装舱 (Chart Wrappers) */
+.chart-wrapper {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.03);
+  padding: 30px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.chart-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.view-mode-indicator {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+/* D3 插槽基础状态 */
+.d3-canvas-slot {
+  width: 100%;
+  min-height: 400px;
+  background: #fafbfc;
+  border-radius: 12px;
+  position: relative;
+}
+
+/* 8. 多指标排版布局 (Layout Multiples) */
+.combined-map-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (min-width: 1280px) {
+  .combined-map-container {
+    flex-direction: row;
+  }
+  #step-1 #vis-map { flex: 2.45; min-height: 540px; }
+  #step-1 #vis-map-top10 { flex: 0.85; min-height: 540px; }
+}
+
+.small-multiples-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+@media (min-width: 1280px) {
+  .small-multiples-container {
+    flex-direction: row;
+  }
+  .sub-chart-box {
+    flex: 1;
+    width: 50%;
+  }
+}
+
+.sub-chart-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+/* 9. 全局交互式提示框样式 (D3 Custom Tooltip) */
+.custom-tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #ffffff;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: translate(-50%, -110%);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 1000;
+  min-width: 180px;
+}
+
+.custom-tooltip.visible {
+  opacity: 1;
+}
+
+.custom-tooltip .tooltip-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+
+.custom-tooltip .tooltip-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f59e0b;
+  margin-bottom: 4px;
+}
+
+/* 10. 辅助动画 */
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-8px); }
+  60% { transform: translateY(-4px); }
+}
+
+.margin-bottom-lg {
+  margin-bottom: 32px;
+}
+
+
+/* ================================================================= */
+/* 新增：步骤二 & 步骤三 特殊布局样式 */
+/* ================================================================= */
+
+/* 步骤二：全屏与无边框设计 */
+.no-border {
+  border-bottom: none;
+  padding-bottom: 40px;
+}
+.narrative-center {
+  max-width: 800px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+.full-bleed-vis {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  background: #fff;
+  padding: 40px 0;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.02), inset 0 -2px 10px rgba(0,0,0,0.02);
+}
+.borderless-slot {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.margin-top-xl {
+  margin-top: 80px;
+}
+
+/* 步骤三：粘性地图与悬浮折线图架构 */
+.interactive-map-section {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 0; /* 移除默认 padding 以满屏 */
+}
+
+.sticky-map-container {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0; /* 顶住浏览器窗口顶部 */
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: #f4f7fb;
+  z-index: 1;
+}
+
+.basemap-canvas {
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.5s ease, filter 0.5s ease;
+}
+
+/* 当页面滚动到深处，或点击国家时，地图变淡 */
+.basemap-canvas.dimmed {
+  opacity: 0.3;
+  filter: grayscale(80%);
+}
+
+.scrolling-text-overlay {
+  position: relative;
+  z-index: 10;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 40px;
+  pointer-events: none; /* 让鼠标事件穿透文本区域点击地图 */
+  display: flex;
+  justify-content: center;
+}
+
+.text-step {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  max-width: 500px;
+  margin-top: 34vh; /* 文字略靠上，避免挡住地图主体 */
+  pointer-events: auto; /* 恢复文本框自身的交互 */
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.step3-prompt.is-hidden {
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+}
+
+.step3-prompt {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 30;
+  margin-top: 0;
+  width: min(500px, calc(100vw - 48px));
+  transform: translate(-50%, -50%);
+}
+
+.step3-prompt.is-hidden {
+  transform: translate(-50%, calc(-50% - 12px));
+}
+
+.scroll-spacer {
+  height: 100vh; /* 撑开高度，创造滚动空间 */
+}
+
+.instruction-card {
+  margin-top: 20px;
+  padding: 16px;
+  background: #eff6ff;
+  border-radius: 12px;
+  color: #1e3a8a;
+  font-size: 0.95rem;
+  border: 1px dashed #bfdbfe;
+}
+
+/* 悬浮弹出的折线图详情面板 */
+.detail-overlay-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(900px, 90vw);
+  height: min(600px, 80vh);
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+  z-index: 20;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.detail-overlay-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -45%);
+}
+
+.close-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: #f1f5f9;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #64748b;
+  transition: background 0.2s;
+}
+.close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.detail-note {
+  margin-top: 6px;
+  max-width: 760px;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.line-chart-slot {
+  flex: 1;
+  width: 100%;
+  margin-top: 20px;
+}

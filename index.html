@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教育普及进程中的系统承载力与结构性平权</title>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    /* 内联基础样式确保地图容器有明确高度 */
+    .combined-map-container {
+      display: flex;
+      gap: 14px;
+      width: 100%;
+      min-height: 540px;
+    }
+    #vis-map {
+      flex: 2.45;
+      min-height: 520px;
+      height: 540px;
+      background: #f8fafc;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    #vis-map-top10 {
+      flex: 0.85;
+      min-height: 520px;
+      height: 540px;
+      background: #f8fafc;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    #vis-butterfly {
+      width: 100%;
+      min-height: 420px;
+      height: 420px;
+    }
+    #vis-scatter {
+      width: 100%;
+      min-height: 420px;
+      height: 420px;
+    }
+    .custom-tooltip {
+      position: fixed;
+      background: rgba(15,23,42,0.92);
+      color: #f1f5f9;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 9999;
+      transition: opacity 0.2s;
+      max-width: 220px;
+      line-height: 1.6;
+    }
+    /* 地图加载占位 */
+    .chart-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    /* 图例 */
+    .map-legend {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 11px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .legend-gradient {
+      width: 140px;
+      height: 10px;
+      border-radius: 5px;
+      margin: 4px 0;
+    }
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #64748b;
+    }
+    .map-zoom-control {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 2px 10px rgba(15,23,42,0.12);
+      font-size: 11px;
+      color: #475569;
+      user-select: none;
+    }
+    .map-zoom-control input {
+      width: 110px;
+      accent-color: #2563eb;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 故事导言区 -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <h1>议题二：系统承载力与结构性平权</h1>
+      <p class="lead-text">
+        基于世界银行公开数据，本部分考察教育系统是否真正消除了适龄儿童入学的物理与社会壁垒，以及女孩和男孩是否拥有相近的教育机会。可视化将从小学失学率出发，进一步观察入学机会、性别平价与完成率。
+      </p>
+      <div class="scroll-arrow">下滑查看</div>
+    </div>
+  </section>
+
+  <main class="story-container">
+
+    <!-- 步骤一：全球失学率 -->
+    <section id="step-1" class="story-step-block">
+      <div class="step-grid">
+        <div class="narrative-side">
+          <div class="sticky-text">
+            <h2>小学适龄儿童失学率</h2>
+            <p>地图展示各国小学适龄儿童的失学率。颜色越深，说明仍未进入学校的儿童比例越高；右侧排行可以切换查看失学率较高或较低的国家。</p>
+            <div class="control-panel">
+              <label class="control-label">查看对象</label>
+              <div class="btn-group" id="map-dimension-toggle">
+                <button class="control-btn active" data-view="total">总体</button>
+                <button class="control-btn" data-view="male">男孩</button>
+                <button class="control-btn" data-view="female">女孩</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="visualization-side">
+          <div class="chart-wrapper">
+            <div class="chart-header">
+              <span class="chart-title">小学阶段失学率的全球分布</span>
+              <div class="view-mode-indicator" id="map-mode-indicator">当前查看：总体失学率 (%)</div>
+            </div>
+            <div class="combined-map-container">
+              <div id="vis-map" class="d3-canvas-slot">
+                <div class="chart-loading">地图加载中...</div>
+              </div>
+              <div id="vis-map-top10" class="d3-canvas-slot">
+                <div class="chart-loading">排行榜加载中...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 步骤二 -->
+    <section id="step-2" class="story-step-block no-border">
+      <div class="narrative-center">
+        <h2>按性别比较失学率</h2>
+        <p>在总体失学率之外，按性别拆分可以观察女孩和男孩入学机会是否一致。下图对比两性失学率，随后将用 GPI 进一步衡量这种差异。</p>
+      </div>
+      
+      <div class="full-bleed-vis">
+        <div id="vis-butterfly" class="d3-canvas-slot borderless-slot"></div>
+      </div>
+
+      <div class="step-grid margin-top-xl">
+        <div class="narrative-side">
+          <div class="sticky-text">
+            <h3>从小学到高等教育，差距会怎样变化</h3>
+            <p><b>性别平价指数（GPI）</b>用于比较女性与男性在同一教育指标上的相对水平，计算方式为女性数值除以男性数值。GPI 接近 1 表示两性大体平衡，低于 1 表示女性相对较少，高于 1 表示女性相对较多。</p>
+            <p>图中多数国家的小学阶段 GPI 接近 1，说明基础教育入口的性别差距相对有限；到高等教育阶段，点位分布明显拉开，部分国家女性占比更高，也有一些国家仍低于平衡线，显示性别差异会随教育阶段变化。</p>
+          </div>
+        </div>
+        <div class="visualization-side">
+          <div class="chart-wrapper">
+            <div id="vis-scatter" class="d3-canvas-slot"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 步骤三 -->
+    <section id="step-3" class="story-step-block interactive-map-section">
+      <div class="sticky-map-container">
+        <div id="vis-step3-map" class="basemap-canvas"></div>
+        <div id="vis-step3-detail" class="detail-overlay-panel hidden">
+          <button class="close-btn" id="close-detail-btn">✕</button>
+          <div class="detail-header">
+            <h3 id="detail-country-title">请点击地图上的国家</h3>
+            <p class="detail-subtitle">初等教育与高等教育完成率的历史变化</p>
+            <p class="detail-note">说明：小学完成率按“最终年级新入学人数 / 该年级理论入学年龄人口”计算，是毛代理指标；超过 100% 通常反映超龄、留级、跨境入学或人口估计差异。</p>
+          </div>
+          <div id="vis-line-chart" class="line-chart-slot"></div>
+        </div>
+      </div>
+
+      <div class="scrolling-text-overlay">
+        <div class="text-step step3-prompt is-hidden">
+          <h2>点击国家查看完成率</h2>
+          <p>选择地图上的国家，查看小学完成率与高等教育完成率的历史变化。</p>
+          <div class="instruction-card">
+            <strong>指标口径：</strong>小学完成率不是追踪同一届学生的毕业率，而是最终年级新入学人数相对于理论入学年龄人口的比例。因此，100% 以上并不一定是数据错误，常见于超龄、留级、跨境生或人口基数偏小的国家和地区。
+          </div>
+        </div>
+        <div class="scroll-spacer"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="global-tooltip" class="custom-tooltip"></div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/topojson-client@3"></script>
+
+  <script>
+  // ============================================================
+  // 静态路径配置
+  // ============================================================
+  const DATA_CONFIG = {
+    // 【修改】使用本地 countries-110m.json
+    topojson: "./countries-110m.json",
+    // TSV 元数据（数字ID → ISO-A3）仍用 CDN，或可换本地文件
+    countryMeta: "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json",
+
+    unerPrecleaned: "./WB_WDI_SE_PRM_UNER_latest_total_female_male.csv",
+    gpiLatest: "./WB_WDI_SE_ENR_GPI_latest_primary_tertiary.csv",
+    completionPrimary: "./WB_HCP_UISCR1.csv",
+    completionTertiary: "./HD_HCIP_TERT.csv"
+  };
+
+  // 全局数据集
+  const GlobalCleanData = {
+    mapDataset: new Map(),
+    butterflyPool: [],
+    butterflyDataset: [],
+    scatterDataset: [],
+    isoNumericToAlpha3: new Map(),
+    // 步骤三：各国完成率时序数据
+    step3CompletionByCountry: new Map(),  // code → 步骤三折线序列集合
+    step3MapLatest: new Map()             // code → 最新一期总体小学完成率（用于地图着色）
+  };
+
+  // ============================================================
+  // 内置 ISO 3166 数字 ID → Alpha-3 完整映射
+  // （world-atlas countries-110m.json 使用 ISO 3166-1 数字编码）
+  // ============================================================
+  const ISO_NUM_TO_A3 = {
+    4:"AFG",8:"ALB",12:"DZA",24:"AGO",32:"ARG",36:"AUS",40:"AUT",50:"BGD",
+    56:"BEL",64:"BTN",68:"BOL",76:"BRA",100:"BGR",104:"MMR",116:"KHM",
+    120:"CMR",124:"CAN",140:"CAF",144:"LKA",152:"CHL",156:"CHN",170:"COL",
+    178:"COG",180:"COD",188:"CRI",191:"HRV",192:"CUB",196:"CYP",203:"CZE",
+    208:"DNK",214:"DOM",218:"ECU",818:"EGY",222:"SLV",231:"ETH",246:"FIN",
+    250:"FRA",266:"GAB",276:"DEU",288:"GHA",300:"GRC",320:"GTM",324:"GIN",
+    332:"HTI",340:"HND",348:"HUN",356:"IND",360:"IDN",364:"IRN",368:"IRQ",
+    372:"IRL",376:"ISR",380:"ITA",388:"JAM",392:"JPN",400:"JOR",398:"KAZ",
+    404:"KEN",116:"KHM",408:"PRK",410:"KOR",414:"KWT",418:"LAO",422:"LBN",
+    430:"LBR",434:"LBY",440:"LTU",442:"LUX",450:"MDG",454:"MWI",458:"MYS",
+    466:"MLI",484:"MEX",504:"MAR",508:"MOZ",516:"NAM",524:"NPL",528:"NLD",
+    540:"NCL",554:"NZL",558:"NIC",562:"NER",566:"NGA",578:"NOR",586:"PAK",
+    591:"PAN",598:"PNG",600:"PRY",604:"PER",608:"PHL",616:"POL",620:"PRT",
+    630:"PRI",634:"QAT",642:"ROU",643:"RUS",646:"RWA",682:"SAU",686:"SEN",
+    694:"SLE",706:"SOM",710:"ZAF",724:"ESP",144:"LKA",736:"SDN",752:"SWE",
+    756:"CHE",760:"SYR",764:"THA",768:"TGO",780:"TTO",788:"TUN",792:"TUR",
+    800:"UGA",804:"UKR",784:"ARE",826:"GBR",840:"USA",858:"URY",862:"VEN",
+    704:"VNM",887:"YEM",894:"ZMB",716:"ZWE",728:"SSD",729:"SDN",
+    12:"DZA",51:"ARM",31:"AZE",112:"BLR",70:"BIH",72:"BWA",86:"IOT",
+    96:"BRN",108:"BDI",132:"CPV",136:"CYM",148:"TCD",174:"COM",175:"MYT",
+    184:"COK",232:"ERI",233:"EST",238:"FLK",242:"FJI",260:"ATF",268:"GEO",
+    270:"GMB",275:"PSE",292:"GIB",296:"KIR",398:"KAZ",417:"KGZ",426:"LSO",
+    428:"LVA",434:"LBY",438:"LIE",446:"MAC",454:"MWI",470:"MLT",478:"MRT",
+    480:"MUS",496:"MNG",498:"MDA",492:"MCO",504:"MAR",516:"NAM",520:"NRU",
+    528:"NLD",548:"VUT",562:"NER",570:"NIU",574:"NFK",579:"MKD",580:"MNP",
+    583:"FSM",584:"MHL",585:"PLW",598:"PNG",626:"TLS",646:"RWA",659:"KNA",
+    662:"LCA",670:"VCT",674:"SMR",678:"STP",688:"SRB",690:"SYC",699:"SGP",
+    702:"SGP",703:"SVK",705:"SVN",706:"SOM",710:"ZAF",716:"ZWE",724:"ESP",
+    728:"SSD",740:"SUR",748:"SWZ",762:"TJK",776:"TON",780:"TTO",795:"TKM",
+    798:"TUV",800:"UGA",807:"MKD",831:"GGY",832:"JEY",833:"IMN",
+    44:"BHS",84:"BLZ",90:"SLB",158:"TWN",204:"BEN",226:"GNQ",262:"DJI",
+    304:"GRL",328:"GUY",352:"ISL",384:"CIV",499:"MNE",512:"OMN",624:"GNB",
+    732:"ESH",834:"TZA",854:"BFA",860:"UZB"
+  };
+
+  const COUNTRY_NAME_ZH = {
+    ABW:"阿鲁巴", AFG:"阿富汗", AGO:"安哥拉", ALB:"阿尔巴尼亚", AND:"安道尔",
+    ARE:"阿拉伯联合酋长国", ARG:"阿根廷", ARM:"亚美尼亚", ATG:"安提瓜和巴布达",
+    AUS:"澳大利亚", AUT:"奥地利", AZE:"阿塞拜疆", BDI:"布隆迪", BEL:"比利时",
+    BEN:"贝宁", BFA:"布基纳法索", BGD:"孟加拉国", BGR:"保加利亚", BHR:"巴林",
+    BHS:"巴哈马", BIH:"波斯尼亚和黑塞哥维那", BLR:"白俄罗斯", BLZ:"伯利兹",
+    BMU:"百慕大", BOL:"玻利维亚", BRA:"巴西", BRB:"巴巴多斯", BRN:"文莱",
+    BTN:"不丹", BWA:"博茨瓦纳", CAF:"中非共和国", CAN:"加拿大", CHE:"瑞士",
+    CHL:"智利", CHN:"中国", CIV:"科特迪瓦", CMR:"喀麦隆", COD:"刚果（金）",
+    COG:"刚果（布）", COL:"哥伦比亚", COM:"科摩罗", CPV:"佛得角", CRI:"哥斯达黎加",
+    CUB:"古巴", CUW:"库拉索", CYM:"开曼群岛", CYP:"塞浦路斯", CZE:"捷克",
+    DEU:"德国", DMA:"多米尼克", DNK:"丹麦", DOM:"多米尼加共和国", DZA:"阿尔及利亚",
+    ECU:"厄瓜多尔", EGY:"埃及", ERI:"厄立特里亚", ESP:"西班牙", EST:"爱沙尼亚",
+    ETH:"埃塞俄比亚", FIN:"芬兰", FJI:"斐济", FRA:"法国", FSM:"密克罗尼西亚联邦",
+    GAB:"加蓬", GBR:"英国", GEO:"格鲁吉亚", GHA:"加纳", GIB:"直布罗陀",
+    GIN:"几内亚", GMB:"冈比亚", GNB:"几内亚比绍", GNQ:"赤道几内亚", GRC:"希腊",
+    GRD:"格林纳达", GTM:"危地马拉", GUY:"圭亚那", HIC:"高收入经济体", HKG:"中国香港",
+    HND:"洪都拉斯", HRV:"克罗地亚", HTI:"海地", HUN:"匈牙利", IDN:"印度尼西亚",
+    IND:"印度", IRL:"爱尔兰", IRN:"伊朗", IRQ:"伊拉克", ISL:"冰岛",
+    ISR:"以色列", ITA:"意大利", JAM:"牙买加", JOR:"约旦", JPN:"日本",
+    KAZ:"哈萨克斯坦", KEN:"肯尼亚", KGZ:"吉尔吉斯斯坦", KHM:"柬埔寨", KIR:"基里巴斯",
+    KNA:"圣基茨和尼维斯", KOR:"韩国", KWT:"科威特", LAO:"老挝", LBN:"黎巴嫩",
+    LBR:"利比里亚", LBY:"利比亚", LCA:"圣卢西亚", LIC:"低收入经济体", LIE:"列支敦士登",
+    LKA:"斯里兰卡", LMC:"中低收入经济体", LSO:"莱索托", LTU:"立陶宛", LUX:"卢森堡",
+    LVA:"拉脱维亚", MAC:"中国澳门", MAR:"摩洛哥", MDA:"摩尔多瓦", MDG:"马达加斯加",
+    MDV:"马尔代夫", MEX:"墨西哥", MHL:"马绍尔群岛", MIC:"中等收入经济体", MKD:"北马其顿",
+    MLI:"马里", MLT:"马耳他", MMR:"缅甸", MNE:"黑山", MNG:"蒙古",
+    MOZ:"莫桑比克", MRT:"毛里塔尼亚", MUS:"毛里求斯", MWI:"马拉维", MYS:"马来西亚",
+    NAM:"纳米比亚", NCL:"新喀里多尼亚", NER:"尼日尔", NGA:"尼日利亚", NIC:"尼加拉瓜",
+    NLD:"荷兰", NOR:"挪威", NPL:"尼泊尔", NRU:"瑙鲁", NZL:"新西兰",
+    OMN:"阿曼", PAK:"巴基斯坦", PAN:"巴拿马", PER:"秘鲁", PHL:"菲律宾",
+    PLW:"帕劳", PNG:"巴布亚新几内亚", POL:"波兰", PRI:"波多黎各", PRK:"朝鲜",
+    PRT:"葡萄牙", PRY:"巴拉圭", PSE:"巴勒斯坦", PYF:"法属波利尼西亚", QAT:"卡塔尔",
+    ROU:"罗马尼亚", RUS:"俄罗斯", RWA:"卢旺达", SAU:"沙特阿拉伯", SDN:"苏丹",
+    SEN:"塞内加尔", SGP:"新加坡", SLB:"所罗门群岛", SLE:"塞拉利昂", SLV:"萨尔瓦多",
+    SMR:"圣马力诺", SOM:"索马里", SRB:"塞尔维亚", SSD:"南苏丹", STP:"圣多美和普林西比",
+    SUR:"苏里南", SVK:"斯洛伐克", SVN:"斯洛文尼亚", SWE:"瑞典", SWZ:"斯威士兰",
+    SXM:"荷属圣马丁", SYC:"塞舌尔", SYR:"叙利亚", TCA:"特克斯和凯科斯群岛", TCD:"乍得",
+    TGO:"多哥", THA:"泰国", TJK:"塔吉克斯坦", TKM:"土库曼斯坦", TLS:"东帝汶",
+    TON:"汤加", TTO:"特立尼达和多巴哥", TUN:"突尼斯", TUR:"土耳其", TUV:"图瓦卢",
+    TZA:"坦桑尼亚", UGA:"乌干达", UKR:"乌克兰", UMC:"中高收入经济体", URY:"乌拉圭",
+    USA:"美国", UZB:"乌兹别克斯坦", VCT:"圣文森特和格林纳丁斯", VEN:"委内瑞拉",
+    VGB:"英属维尔京群岛", VNM:"越南", VUT:"瓦努阿图", WSM:"萨摩亚", YEM:"也门",
+    ZAF:"南非", ZMB:"赞比亚", ZWE:"津巴布韦"
+  };
+
+  const NON_COUNTRY_CODES = new Set(["HIC", "LIC", "LMC", "MIC", "UMC"]);
+
+  function getCountryName(code, fallback) {
+    return COUNTRY_NAME_ZH[code] || fallback || code;
+  }
+
+  function formatRate(value) {
+    return value < 1 ? value.toFixed(2) : value.toFixed(1);
+  }
+
+  // ============================================================
+  // 并发数据加载
+  // ============================================================
+  Promise.all([
+    d3.json(DATA_CONFIG.topojson),
+    d3.csv(DATA_CONFIG.unerPrecleaned).catch(() => []),
+    d3.csv(DATA_CONFIG.gpiLatest).catch(() => []),
+    d3.csv(DATA_CONFIG.completionPrimary).catch(() => []),
+    d3.csv(DATA_CONFIG.completionTertiary).catch(() => [])
+  ]).then(([worldTopo, csvUnerCleaned, csvGpiLatest, csvCompPrim, csvCompTert]) => {
+
+    console.log("✅ [Data Center] 数据并发读取成功");
+
+    // ---- 解析失学率数据 ----
+    if (csvUnerCleaned && csvUnerCleaned.length > 0) {
+      csvUnerCleaned.forEach(row => {
+        const code = (row["country_code"] || "").trim().toUpperCase();
+        if (!code) return;
+        GlobalCleanData.mapDataset.set(code, {
+          code,
+          name: getCountryName(code, row["country_name"] || code),
+          total: { value: parseFloat(row["uner_total"]), year: parseInt(row["uner_total_year"]) },
+          female: { value: parseFloat(row["uner_female"]), year: parseInt(row["uner_female_year"]) },
+          male: { value: parseFloat(row["uner_male"]), year: parseInt(row["uner_male_year"]) }
+        });
+      });
+    } else {
+      // 使用 Mock 数据以便调试地图渲染
+      console.warn("⚠️ 失学率 CSV 未加载，使用 Mock 数据");
+      injectMockMapData();
+    }
+    console.log("✅ mapDataset 大小:", GlobalCleanData.mapDataset.size);
+
+    // ---- 构建蝴蝶图数据集 ----
+    buildButterflyDataset();
+
+    // ---- 构建散点图数据集 ----
+    buildScatterDataset(csvGpiLatest);
+
+    // ---- 解析地理要素 ----
+    const geoCountries = topojson.feature(worldTopo, worldTopo.objects.countries).features;
+
+    // ---- 步骤三数据解析 ----
+    buildStep3CompletionData(csvCompPrim, csvCompTert);
+
+    // ---- 渲染各模块 ----
+    renderMapChart("#vis-map", "#vis-map-top10", geoCountries, GlobalCleanData.mapDataset);
+    renderButterflyChart("#vis-butterfly", GlobalCleanData.butterflyDataset);
+    renderScatterPlot("#vis-scatter", GlobalCleanData.scatterDataset);
+    initStep3Interactions(geoCountries);
+
+  }).catch(error => {
+    console.error("❌ [Fatal Error] 数据加载失败:", error);
+    // 即使失败也尝试渲染地图（使用 Mock）
+    d3.json(DATA_CONFIG.topojson).then(worldTopo => {
+      injectMockMapData();
+      buildButterflyDataset();
+      const geoCountries = topojson.feature(worldTopo, worldTopo.objects.countries).features;
+      renderMapChart("#vis-map", "#vis-map-top10", geoCountries, GlobalCleanData.mapDataset);
+      renderButterflyChart("#vis-butterfly", GlobalCleanData.butterflyDataset);
+    }).catch(e => {
+      document.getElementById("vis-map").innerHTML = '<div class="chart-loading" style="color:#ef4444">地图文件加载失败，请确认 countries-110m.json 在当前目录</div>';
+    });
+  });
+
+  // ============================================================
+  // Mock 数据注入（调试用）
+  // ============================================================
+  function injectMockMapData() {
+    const mockRates = {
+      "AFG": { name:"阿富汗", total:55.2, male:36.1, female:66.4 },
+      "SDN": { name:"苏丹", total:48.7, male:40.2, female:57.3 },
+      "SSD": { name:"南苏丹", total:63.5, male:58.1, female:70.3 },
+      "NER": { name:"尼日尔", total:59.1, male:49.8, female:68.4 },
+      "MLI": { name:"马里", total:52.3, male:45.6, female:59.2 },
+      "TCD": { name:"乍得", total:49.8, male:40.2, female:55.8 },
+      "CAF": { name:"中非共和国", total:47.2, male:39.1, female:55.3 },
+      "NGA": { name:"尼日利亚", total:28.4, male:20.3, female:32.1 },
+      "PAK": { name:"巴基斯坦", total:32.5, male:25.4, female:38.2 },
+      "ETH": { name:"埃塞俄比亚", total:35.6, male:30.1, female:41.2 },
+      "GIN": { name:"几内亚", total:44.3, male:36.8, female:52.1 },
+      "MOZ": { name:"莫桑比克", total:38.7, male:32.4, female:44.9 },
+      "AGO": { name:"安哥拉", total:36.1, male:30.5, female:41.8 },
+      "YEM": { name:"也门", total:41.8, male:30.2, female:53.4 },
+      "IRQ": { name:"伊拉克", total:22.3, male:18.1, female:26.5 },
+      "SEN": { name:"塞内加尔", total:31.2, male:28.4, female:34.1 },
+      "GHA": { name:"加纳", total:18.4, male:16.2, female:20.8 },
+      "KEN": { name:"肯尼亚", total:14.7, male:13.2, female:16.3 },
+      "TZA": { name:"坦桑尼亚", total:25.6, male:22.1, female:29.2 },
+      "UGA": { name:"乌干达", total:22.8, male:20.5, female:25.1 },
+      "IND": { name:"印度", total:11.2, male:9.8, female:12.7 },
+      "BGD": { name:"孟加拉国", total:15.3, male:14.8, female:15.9 },
+      "MMR": { name:"缅甸", total:17.6, male:16.4, female:18.8 },
+      "KHM": { name:"柬埔寨", total:21.3, male:18.7, female:23.9 },
+      "LAO": { name:"老挝", total:24.5, male:21.2, female:27.8 },
+      "CHN": { name:"中国", total:3.2, male:2.9, female:3.6 },
+      "BRA": { name:"巴西", total:7.4, male:8.1, female:6.7 },
+      "MEX": { name:"墨西哥", total:8.2, male:7.9, female:8.5 },
+      "COL": { name:"哥伦比亚", total:9.6, male:10.2, female:9.0 },
+      "PER": { name:"秘鲁", total:6.8, male:6.2, female:7.4 },
+      "USA": { name:"美国", total:1.2, male:1.3, female:1.1 },
+      "GBR": { name:"英国", total:0.8, male:0.9, female:0.7 },
+      "DEU": { name:"德国", total:0.5, male:0.6, female:0.5 },
+      "FRA": { name:"法国", total:0.9, male:1.0, female:0.8 },
+      "RUS": { name:"俄罗斯", total:2.1, male:2.3, female:1.9 },
+      "ZAF": { name:"南非", total:12.4, male:11.8, female:13.1 },
+      "EGY": { name:"埃及", total:13.8, male:11.2, female:16.4 },
+      "MAR": { name:"摩洛哥", total:16.5, male:12.8, female:20.2 },
+    };
+    Object.entries(mockRates).forEach(([code, d]) => {
+      GlobalCleanData.mapDataset.set(code, {
+        code, name: getCountryName(code, d.name),
+        total: { value: d.total, year: 2022 },
+        female: { value: d.female, year: 2022 },
+        male: { value: d.male, year: 2022 }
+      });
+    });
+  }
+
+  // ============================================================
+  // 步骤三：解析完成率数据
+  // ============================================================
+  function buildStep3CompletionData(csvCompPrim, csvCompTert) {
+    const byCountry = GlobalCleanData.step3CompletionByCountry;
+    byCountry.clear();
+    GlobalCleanData.step3MapLatest.clear();
+
+    function ensureEntry(code) {
+      if (!byCountry.has(code)) {
+        byCountry.set(code, {
+          primaryTotal: [], primaryFemale: [], primaryMale: [],
+          tertiaryTotal: [], tertiaryFemale: [], tertiaryMale: []
+        });
+      }
+      return byCountry.get(code);
+    }
+
+    // 解析小学完成率（WB_HCP_UISCR1）：Total / Female / Male
+    if (csvCompPrim && csvCompPrim.length > 0) {
+      csvCompPrim.forEach(row => {
+        const code   = (row["REF_AREA"]    || "").trim().toUpperCase();
+        const sex    = (row["SEX"]         || "").trim();
+        const year   = parseInt(row["TIME_PERIOD"]);
+        const value  = parseFloat(row["OBS_VALUE"]);
+        const status = (row["OBS_STATUS"]  || "A").trim();
+
+        if (!code || NON_COUNTRY_CODES.has(code)) return;
+        if (isNaN(year) || isNaN(value) || value < 0) return;
+        if (status !== "A") return;
+
+        const e = ensureEntry(code);
+        const pt = { year, value };
+        if      (sex === "_T") e.primaryTotal.push(pt);
+        else if (sex === "F")  e.primaryFemale.push(pt);
+        else if (sex === "M")  e.primaryMale.push(pt);
+      });
+    }
+
+    // 解析高等教育完成率（HD_HCIP_TERT）：Total / Female / Male
+    if (csvCompTert && csvCompTert.length > 0) {
+      csvCompTert.forEach(row => {
+        const code  = (row["REF_AREA"]   || "").trim().toUpperCase();
+        const sex   = (row["SEX"]        || "").trim();
+        const year  = parseInt(row["TIME_PERIOD"]);
+        const value = parseFloat(row["OBS_VALUE"]);
+
+        if (!code || NON_COUNTRY_CODES.has(code)) return;
+        if (isNaN(year) || isNaN(value) || value < 0) return;
+
+        const e = ensureEntry(code);
+        const pt = { year, value };
+        if      (sex === "_T") e.tertiaryTotal.push(pt);
+        else if (sex === "F")  e.tertiaryFemale.push(pt);
+        else if (sex === "M")  e.tertiaryMale.push(pt);
+      });
+    }
+
+    // 按年份升序排列，并抽取最新总体完成率用于地图着色
+    byCountry.forEach((d, code) => {
+      d.primaryTotal.sort((a, b)  => a.year - b.year);
+      d.primaryFemale.sort((a, b) => a.year - b.year);
+      d.primaryMale.sort((a, b)   => a.year - b.year);
+      d.tertiaryTotal.sort((a, b) => a.year - b.year);
+      d.tertiaryFemale.sort((a, b) => a.year - b.year);
+      d.tertiaryMale.sort((a, b)   => a.year - b.year);
+
+      if (d.primaryTotal.length > 0) {
+        const latest = d.primaryTotal[d.primaryTotal.length - 1];
+        GlobalCleanData.step3MapLatest.set(code, latest.value);
+      }
+    });
+
+    console.log("✅ [Step3] 完成率数据解析完成，国家数:", byCountry.size);
+  }
+
+  // ============================================================
+  // 构建蝴蝶图数据集
+  // ============================================================
+  const BUTTERFLY_BATCH_SIZE = 15;
+
+  function buildButterflyDataset() {
+    GlobalCleanData.butterflyPool = Array.from(GlobalCleanData.mapDataset.values())
+      .filter(d => d.male?.value != null && d.female?.value != null && !isNaN(d.male.value) && !isNaN(d.female.value))
+      .filter(d => !NON_COUNTRY_CODES.has(d.code))
+      .filter(d => d.female.value > d.male.value)
+      .map(d => ({
+        country: d.name,
+        code: d.code,
+        male: d.male.value,
+        female: d.female.value,
+        gap: d.female.value - d.male.value
+      }))
+      .sort((a, b) => b.gap - a.gap);
+    GlobalCleanData.butterflyDataset = GlobalCleanData.butterflyPool.slice(0, BUTTERFLY_BATCH_SIZE);
+  }
+
+  function getRandomButterflyBatch() {
+    return d3.shuffle(GlobalCleanData.butterflyPool.slice()).slice(0, BUTTERFLY_BATCH_SIZE)
+      .sort((a, b) => b.gap - a.gap);
+  }
+
+  // ============================================================
+  // 构建散点图数据集
+  // ============================================================
+  function buildScatterDataset(csvGpiLatest) {
+    GlobalCleanData.scatterDataset = [];
+
+    if (csvGpiLatest && csvGpiLatest.length > 0) {
+      csvGpiLatest.forEach(row => {
+        const code = (row["country_code"] || row["Country Code"] || "").trim().toUpperCase();
+        const primary = parseFloat(row["gpi_primary"]);
+        const tertiary = parseFloat(row["gpi_tertiary"]);
+        const primaryYear = parseInt(row["gpi_primary_year"]);
+        const tertiaryYear = parseInt(row["gpi_tertiary_year"]);
+
+        if (!code || NON_COUNTRY_CODES.has(code) || !GlobalCleanData.mapDataset.has(code)) return;
+        if (isNaN(primary) || isNaN(tertiary)) return;
+
+        const d = GlobalCleanData.mapDataset.get(code);
+        GlobalCleanData.scatterDataset.push({
+          code,
+          name: getCountryName(code, d ? d.name : row["country_name"] || code),
+          primary,
+          tertiary,
+          primaryYear: isNaN(primaryYear) ? null : primaryYear,
+          tertiaryYear: isNaN(tertiaryYear) ? null : tertiaryYear
+        });
+      });
+    }
+
+    if (GlobalCleanData.scatterDataset.length === 0) {
+      // Mock GPI 数据
+      GlobalCleanData.scatterDataset = [
+        {code:"CHN",name:"中国",primary:1.01,tertiary:1.14,primaryYear:2020,tertiaryYear:2024},
+        {code:"IND",name:"印度",primary:0.97,tertiary:0.92,primaryYear:2020,tertiaryYear:2024},
+        {code:"AFG",name:"阿富汗",primary:0.68,tertiary:0.32,primaryYear:2019,tertiaryYear:2020},
+        {code:"SAU",name:"沙特阿拉伯",primary:0.99,tertiary:1.28,primaryYear:2020,tertiaryYear:2024},
+        {code:"YEM",name:"也门",primary:0.79,tertiary:0.44,primaryYear:2020,tertiaryYear:2024},
+        {code:"PAK",name:"巴基斯坦",primary:0.84,tertiary:0.71,primaryYear:2020,tertiaryYear:2024},
+        {code:"BRA",name:"巴西",primary:0.98,tertiary:1.31,primaryYear:2020,tertiaryYear:2024},
+        {code:"USA",name:"美国",primary:1.00,tertiary:1.38,primaryYear:2020,tertiaryYear:2024}
+      ];
+    }
+  }
+
+  // ============================================================
+  // 【模块一】地图 + 排行榜
+  // ============================================================
+  function renderMapChart(mapId, topId, geoFeatures, cleanMap) {
+    const mapContainer = d3.select(mapId);
+    const topContainer = d3.select(topId);
+    const tooltip = d3.select("#global-tooltip");
+
+    mapContainer.html("");
+    topContainer.html("");
+
+    // 确保容器有像素高度
+    const mapNode = mapContainer.node();
+    const topNode = topContainer.node();
+    const mapWidth = Math.max(mapNode.getBoundingClientRect().width, 300);
+    const mapHeight = Math.max(mapNode.getBoundingClientRect().height, 420);
+    const topWidth = Math.max(topNode.getBoundingClientRect().width, 220);
+    const topHeight = Math.max(topNode.getBoundingClientRect().height, 420);
+
+    // ---- 地图 SVG ----
+    const mapSvg = mapContainer.append("svg")
+      .attr("width", mapWidth).attr("height", mapHeight);
+
+    const featureCollection = { type: "FeatureCollection", features: geoFeatures };
+    const projection = d3.geoEqualEarth().fitSize([mapWidth, mapHeight - 10], featureCollection);
+    const pathGen = d3.geoPath().projection(projection);
+
+    // 绘制海洋背景
+    mapSvg.append("rect")
+      .attr("width", mapWidth).attr("height", mapHeight)
+      .attr("fill", "#dbeafe").attr("rx", 6);
+
+    const mapG = mapSvg.append("g");
+    const mapCenter = { x: mapWidth / 2, y: mapHeight / 2 };
+    const mapPan = { x: 0, y: 0 };
+    let currentMapScale = 1;
+
+    function clampMapPan() {
+      const maxX = Math.max(0, (currentMapScale - 1) * mapWidth / 2);
+      const maxY = Math.max(0, (currentMapScale - 1) * mapHeight / 2);
+      mapPan.x = Math.max(-maxX, Math.min(maxX, mapPan.x));
+      mapPan.y = Math.max(-maxY, Math.min(maxY, mapPan.y));
+    }
+
+    function applyMapTransform() {
+      clampMapPan();
+      mapG.attr(
+        "transform",
+        `translate(${mapCenter.x + mapPan.x},${mapCenter.y + mapPan.y}) scale(${currentMapScale}) translate(${-mapCenter.x},${-mapCenter.y})`
+      );
+    }
+
+    function applyMapZoom(scale) {
+      currentMapScale = scale;
+      if (currentMapScale <= 1.01) {
+        mapPan.x = 0;
+        mapPan.y = 0;
+      }
+      applyMapTransform();
+    }
+
+    mapSvg
+      .style("cursor", "grab")
+      .call(d3.drag()
+        .on("start", function() {
+          d3.select(this).style("cursor", "grabbing");
+        })
+        .on("drag", function(event) {
+          if (currentMapScale <= 1.01) return;
+          mapPan.x += event.dx;
+          mapPan.y += event.dy;
+          applyMapTransform();
+        })
+        .on("end", function() {
+          d3.select(this).style("cursor", "grab");
+        })
+      );
+
+    const zoomControl = mapContainer.append("div").attr("class", "map-zoom-control");
+    zoomControl.append("span").text("地图缩放");
+    zoomControl.append("input")
+      .attr("type", "range")
+      .attr("min", 1)
+      .attr("max", 2.4)
+      .attr("step", 0.05)
+      .attr("value", 1)
+      .on("input", function() {
+        applyMapZoom(+this.value);
+      });
+
+    // 【关键修复】国家 ID 映射：TopoJSON 数字 ID → ISO-A3
+    function getCountryCode(d) {
+      const numId = +d.id;
+      return ISO_NUM_TO_A3[numId] || null;
+    }
+
+    // ---- 指标标签映射 ----
+    const dimLabel = { total:"总体失学率 (%)", male:"男孩失学率 (%)", female:"女孩失学率 (%)" };
+
+    function logStep1Coverage() {
+      const geoCodes = new Set(geoFeatures.map(getCountryCode).filter(Boolean));
+      const unmappedGeo = geoFeatures
+        .filter(d => !getCountryCode(d))
+        .map(d => d.properties?.name || d.id || "unknown");
+
+      const coverage = ["total", "female", "male"].map(dim => {
+        const validCsvCodes = Array.from(cleanMap.values())
+          .filter(d => d[dim]?.value != null && !isNaN(d[dim].value))
+          .map(d => d.code);
+        const visualizedCodes = validCsvCodes.filter(code => geoCodes.has(code));
+        const missingCodes = validCsvCodes.filter(code => !geoCodes.has(code));
+
+        return {
+          dim,
+          validCsvCountries: validCsvCodes.length,
+          visualizedCountries: visualizedCodes.length,
+          notVisualizedCountries: missingCodes.length,
+          notVisualizedCodes: missingCodes
+        };
+      });
+
+      console.group("步骤一地图国家覆盖率");
+      console.log("CSV 国家数:", cleanMap.size);
+      console.log("TopoJSON 国家要素数:", geoFeatures.length);
+      console.log("可转换为 ISO3 的地图要素数:", geoCodes.size);
+      console.table(coverage.map(d => ({
+        指标: dimLabel[d.dim],
+        CSV有效国家数: d.validCsvCountries,
+        地图已可视化国家数: d.visualizedCountries,
+        未上图国家数: d.notVisualizedCountries
+      })));
+      coverage.forEach(d => console.log(`${dimLabel[d.dim]} 未上图代码:`, d.notVisualizedCodes.join(", ") || "无"));
+      console.log("未映射的 TopoJSON 要素:", unmappedGeo.join(", ") || "无");
+      console.groupEnd();
+    }
+
+    logStep1Coverage();
+
+    const mapPaths = mapG.selectAll("path")
+      .data(geoFeatures)
+      .enter()
+      .append("path")
+      .attr("d", pathGen)
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 0.4)
+      .attr("fill", "#cbd5e1");
+
+    // ---- 图例 ----
+    const legendDiv = mapContainer.append("div").attr("class", "map-legend");
+    legendDiv.append("div").style("font-size","11px").style("color","#475569").style("margin-bottom","4px").text("失学率 (%)");
+    const gradientId = "grad-" + Math.random().toString(36).slice(2,7);
+    const legendSvg = legendDiv.append("svg").attr("width",140).attr("height",22);
+    const defs = legendSvg.append("defs");
+    const grad = defs.append("linearGradient").attr("id", gradientId).attr("x1","0%").attr("x2","100%");
+    grad.append("stop").attr("offset","0%").attr("stop-color","#eff6ff");
+    grad.append("stop").attr("offset","50%").attr("stop-color","#3b82f6");
+    grad.append("stop").attr("offset","100%").attr("stop-color","#1e3a5f");
+    legendSvg.append("rect").attr("width",140).attr("height",12).attr("fill",`url(#${gradientId})`).attr("rx",4);
+    legendDiv.append("div").attr("class","legend-labels")
+      .html('<span>0%</span><span>缺数据</span><span>较高</span>');
+
+    // ---- 排行榜 SVG：前 10 / 后 10 可切换 ----
+    const margin = { top: 72, right: 22, bottom: 30, left: 92 };
+    const iW = topWidth - margin.left - margin.right;
+    const sectionH = Math.max(topHeight - margin.top - margin.bottom, 260);
+
+    const topSvg = topContainer.append("svg")
+      .attr("width", topWidth).attr("height", topHeight);
+
+    let rankMode = "high";
+    let currentDim = "total";
+    const rankToggleData = [
+      { key:"high", label:"较高" },
+      { key:"low", label:"较低" }
+    ];
+
+    const toggleW = 82;
+    const toggleGap = 12;
+    const toggleH = 26;
+    const toggleTotalW = rankToggleData.length * toggleW + (rankToggleData.length - 1) * toggleGap;
+    const toggleG = topSvg.append("g")
+      .attr("transform", `translate(${Math.max(8, topWidth / 2 - toggleTotalW / 2)},12)`);
+
+    const toggleBtns = toggleG.selectAll("g")
+      .data(rankToggleData)
+      .enter()
+      .append("g")
+      .attr("transform", (d, i) => `translate(${i * (toggleW + toggleGap)},0)`)
+      .style("cursor","pointer")
+      .on("click", function(event, d) {
+        rankMode = d.key;
+        updateRankToggle();
+        updateVisuals(currentDim);
+      });
+
+    toggleBtns.append("rect")
+      .attr("width", toggleW)
+      .attr("height", toggleH)
+      .attr("rx", 13)
+      .attr("stroke-width", 1);
+
+    toggleBtns.append("text")
+      .attr("x", toggleW / 2)
+      .attr("y", 17)
+      .attr("text-anchor","middle")
+      .style("font-size","12px")
+      .style("font-weight","600")
+      .text(d => d.label);
+
+    function updateRankToggle() {
+      toggleBtns.select("rect")
+        .attr("fill", d => d.key === rankMode ? "#2563eb" : "#e2e8f0")
+        .attr("stroke", d => d.key === rankMode ? "#1d4ed8" : "#cbd5e1");
+      toggleBtns.select("text")
+        .attr("fill", d => d.key === rankMode ? "#ffffff" : "#475569");
+    }
+
+    function createRankSection() {
+      const g = topSvg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const titleText = g.append("text")
+        .attr("x", topWidth / 2 - margin.left).attr("y", -16)
+        .attr("text-anchor","middle")
+        .style("font-size","12px").style("font-weight","600").style("fill","#1e293b");
+
+      return {
+        g,
+        titleText,
+        xScale: d3.scaleLinear().range([0, iW]),
+        yScale: d3.scaleBand().range([0, sectionH]).padding(0.22),
+        xAxisG: g.append("g").attr("transform", `translate(0,${sectionH})`),
+        yAxisG: g.append("g")
+      };
+    }
+
+    const rankSection = createRankSection();
+    updateRankToggle();
+
+    // ---- Tooltip 辅助 ----
+    const showTooltip = (event, html) => {
+      tooltip.interrupt(); // 打断任何进行中的淡出动画
+      tooltip.html(html)
+        .style("left", (event.clientX + 16) + "px")
+        .style("top",  (event.clientY - 10) + "px")
+        .style("opacity", "1");
+    };
+    const moveTooltip = (event) => {
+      tooltip
+        .style("left", (event.clientX + 16) + "px")
+        .style("top",  (event.clientY - 10) + "px");
+    };
+    const hideTooltip = () => {
+      tooltip.style("opacity", "0");
+    };
+
+    const handleOver = (event, d, dim) => {
+      const info = d[dim];
+      if (!info) return;
+      d3.select(event.currentTarget).attr("stroke","#334155").attr("stroke-width",1.5).style("opacity",0.85);
+      showTooltip(event,
+        `<div style="font-weight:600;margin-bottom:4px">${d.name || d.code}</div>
+         <div>${dimLabel[dim].replace(" (%)","")}：<span style="color:#60a5fa;font-weight:bold">${formatRate(info.value)}%</span></div>
+         <div style="font-size:11px;color:#94a3b8">数据年份：${info.year || "—"}</div>`
+      );
+    };
+    const handleMove = (event) => moveTooltip(event);
+    const handleOut = (event) => {
+      d3.select(event.currentTarget)
+        .attr("stroke", event.currentTarget.tagName==="path" ? "#fff" : null)
+        .attr("stroke-width", event.currentTarget.tagName==="path" ? 0.4 : null)
+        .style("opacity", 1);
+      hideTooltip();
+    };
+
+    // ---- 核心更新函数 ----
+    function updateVisuals(dim) {
+      currentDim = dim;
+      const t = d3.transition().duration(700);
+
+      const allVals = Array.from(cleanMap.values())
+        .map(d => d[dim]?.value).filter(v => v != null && !isNaN(v));
+      const maxVal = d3.max(allVals) || 100;
+
+      const colorScale = d3.scaleSequential(d3.interpolateBlues).domain([0, maxVal]);
+
+      // 更新地图颜色
+      mapPaths
+        .on("mouseover", function(ev, d) {
+          const code = getCountryCode(d);
+          const data = code ? cleanMap.get(code) : null;
+          if (data) handleOver(ev, data, dim);
+        })
+        .on("mousemove", handleMove)
+        .on("mouseout", handleOut)
+        .transition(t)
+        .attr("fill", d => {
+          const code = getCountryCode(d);
+          const data = code ? cleanMap.get(code) : null;
+          return (data && data[dim]?.value != null && !isNaN(data[dim].value))
+            ? colorScale(data[dim].value)
+            : "#e2e8f0";
+        });
+
+      // 更新模式指示器
+      d3.select("#map-mode-indicator").text(`当前查看：${dimLabel[dim]}`);
+
+      const ranked = Array.from(cleanMap.values())
+        .filter(d => !NON_COUNTRY_CODES.has(d.code))
+        .filter(d => d[dim]?.value != null && !isNaN(d[dim].value));
+
+      const top10 = ranked.slice().sort((a,b) => b[dim].value - a[dim].value).slice(0, 10);
+      const bottom10 = ranked.slice().sort((a,b) => a[dim].value - b[dim].value).slice(0, 10);
+      const rankRows = rankMode === "high" ? top10 : bottom10;
+
+      function getRankFill(d) {
+        const ratio = maxVal ? d[dim].value / maxVal : 0;
+        return d3.interpolateBlues(Math.max(0.35, ratio));
+      }
+
+      function renderRankSection(section, rows) {
+        section.titleText.text(rankMode === "high" ? "失学率较高的 10 个国家/地区" : "失学率较低的 10 个国家/地区");
+        const maxRankVal = d3.max(rows, d => d[dim].value) || 1;
+        section.xScale.domain([0, maxRankVal * 1.15]).nice();
+        section.yScale.domain(rows.map(d => d.name));
+
+        section.xAxisG.transition(t)
+          .call(d3.axisBottom(section.xScale).ticks(3).tickFormat(d => d + "%"))
+          .selectAll("text").style("font-size","10px").style("fill","#64748b");
+        section.yAxisG.transition(t)
+          .call(d3.axisLeft(section.yScale))
+          .selectAll("text").style("font-size","10px").style("fill","#334155");
+
+        const bars = section.g.selectAll(".bar-rank").data(rows, d => d.code);
+        bars.exit().transition(t).attr("width",0).style("opacity",0).remove();
+
+        bars.enter().append("rect").attr("class", "bar bar-rank")
+          .attr("y", d => section.yScale(d.name))
+          .attr("height", section.yScale.bandwidth())
+          .attr("x",0).attr("width",0)
+          .attr("fill", getRankFill).attr("rx",3)
+          .on("mouseover", function(ev,d){ handleOver(ev,d,dim); })
+          .on("mousemove", handleMove).on("mouseout", handleOut)
+          .merge(bars)
+          .transition(t)
+          .attr("y", d => section.yScale(d.name))
+          .attr("height", section.yScale.bandwidth())
+          .attr("width", d => section.xScale(d[dim].value))
+          .attr("fill", getRankFill);
+
+        const labels = section.g.selectAll(".bar-label-rank").data(rows, d => d.code);
+        labels.exit().remove();
+        labels.enter().append("text").attr("class", "bar-label bar-label-rank")
+          .attr("y", d => section.yScale(d.name) + section.yScale.bandwidth()/2 + 3)
+          .attr("x",4).style("font-size","9px").style("fill","#334155")
+          .merge(labels).transition(t)
+          .attr("y", d => section.yScale(d.name) + section.yScale.bandwidth()/2 + 3)
+          .attr("x", d => section.xScale(d[dim].value) + 4)
+          .text(d => formatRate(d[dim].value) + "%");
+      }
+
+      renderRankSection(rankSection, rankRows);
+    }
+
+    // 绑定按钮事件
+    d3.selectAll("#map-dimension-toggle .control-btn").on("click", function() {
+      d3.selectAll("#map-dimension-toggle .control-btn").classed("active",false);
+      d3.select(this).classed("active",true);
+      updateVisuals(d3.select(this).attr("data-view"));
+    });
+
+    // 初始渲染
+    updateVisuals("total");
+  }
+
+  // ============================================================
+  // 【模块二A】蝴蝶图
+  // ============================================================
+  function renderButterflyChart(containerId, dataset) {
+    const container = d3.select(containerId);
+    container.html("");
+
+    if (!dataset || dataset.length === 0) {
+      container.append("div").attr("class","chart-loading").text("蝴蝶图数据不足");
+      return;
+    }
+
+    const node = container.node();
+    const width = Math.max(node.getBoundingClientRect().width || 900, 600);
+    const height = Math.max(node.getBoundingClientRect().height || 420, 380);
+
+    const margin = { top: 50, bottom: 30, left: 0, right: 0 };
+    const midX = width / 2;
+    const barMaxW = midX - 120; // 每侧最大宽度
+    const innerH = height - margin.top - margin.bottom;
+
+    const svg = container.append("svg")
+      .attr("width", width).attr("height", height);
+
+    const tooltip = d3.select("#global-tooltip");
+    const ttShow = (ev, html) => {
+      tooltip.interrupt().html(html)
+        .style("left",(ev.clientX+16)+"px").style("top",(ev.clientY-10)+"px")
+        .style("opacity","1");
+    };
+    const ttMove = (ev) => tooltip.style("left",(ev.clientX+16)+"px").style("top",(ev.clientY-10)+"px");
+    const ttHide = () => tooltip.style("opacity","0");
+
+    if (GlobalCleanData.butterflyPool.length > BUTTERFLY_BATCH_SIZE) {
+      const refreshG = svg.append("g")
+        .attr("transform", "translate(24,14)")
+        .style("cursor","pointer")
+        .on("click", () => {
+          refreshG.style("pointer-events","none");
+          refreshG.select("text").text("正在更换...");
+          svg.select(".butterfly-dynamic-layer").transition()
+            .duration(260)
+            .style("opacity",0)
+            .attr("transform","translate(0,10)")
+            .on("end", () => {
+              GlobalCleanData.butterflyDataset = getRandomButterflyBatch();
+              drawButterflyLayer(GlobalCleanData.butterflyDataset, true);
+              refreshG.select("text").text("换一批");
+              refreshG.style("pointer-events",null);
+            });
+        });
+
+      refreshG.append("rect")
+        .attr("width",96).attr("height",32)
+        .attr("rx",16)
+        .attr("fill","#0f172a")
+        .attr("stroke","#0f172a")
+        .attr("filter", "drop-shadow(0 4px 10px rgba(15,23,42,0.22))");
+      refreshG.append("text")
+        .attr("x",48).attr("y",21)
+        .attr("text-anchor","middle")
+        .style("font-size","12px")
+        .style("font-weight","600")
+        .style("fill","#ffffff")
+        .text("换一批");
+    }
+
+    // 标题
+    svg.append("text").attr("x", midX - barMaxW/2).attr("y",28)
+      .attr("text-anchor","middle").style("fill","#f43f5e").style("font-weight","700").style("font-size","13px")
+      .text("← 女孩失学率");
+    svg.append("text").attr("x", midX + barMaxW/2).attr("y",28)
+      .attr("text-anchor","middle").style("fill","#3b82f6").style("font-weight","700").style("font-size","13px")
+      .text("男孩失学率 →");
+
+    // 中轴线
+    svg.append("line")
+      .attr("x1",midX).attr("x2",midX).attr("y1",margin.top-10).attr("y2",height-margin.bottom)
+      .attr("stroke","#94a3b8").attr("stroke-dasharray","4,4").attr("stroke-width",1.5);
+
+    function drawButterflyLayer(nextDataset, animateIn = false) {
+      svg.select(".butterfly-dynamic-layer").remove();
+
+      const layer = svg.append("g")
+        .attr("class","butterfly-dynamic-layer")
+        .style("opacity", animateIn ? 0 : 1)
+        .attr("transform", animateIn ? "translate(0,-10)" : "translate(0,0)");
+
+      const maxVal = d3.max(nextDataset, d => Math.max(d.male, d.female));
+      const xScale = d3.scaleLinear().domain([0, maxVal]).range([0, barMaxW]);
+      const yScale = d3.scaleBand().domain(nextDataset.map(d => d.country))
+        .range([margin.top, margin.top + innerH]).padding(0.28);
+
+      nextDataset.forEach((d,i) => {
+        if(i%2===0) layer.append("rect")
+          .attr("x",0).attr("y",yScale(d.country)-yScale.step()*yScale.paddingInner()/2)
+          .attr("width",width).attr("height",yScale.step())
+          .attr("fill","#f8fafc");
+      });
+
+      layer.selectAll(".bar-female")
+        .data(nextDataset).enter().append("rect").attr("class","bar-female")
+        .attr("x", midX).attr("y", d => yScale(d.country))
+        .attr("width", 0).attr("height", yScale.bandwidth())
+        .attr("fill","#f43f5e").attr("rx",3).style("opacity",0.85)
+        .on("mouseover", function(ev,d){
+          ttShow(ev, `<b>${d.country}</b><br>女孩失学率：<span style="color:#f43f5e">${formatRate(d.female)}%</span><br>比男孩高：${formatRate(d.gap)} 个百分点`);
+        })
+        .on("mousemove", ttMove)
+        .on("mouseout", ttHide)
+        .transition().duration(520).ease(d3.easeCubicOut)
+        .attr("x", d => midX - xScale(d.female))
+        .attr("width", d => xScale(d.female));
+
+      layer.selectAll(".bar-male")
+        .data(nextDataset).enter().append("rect").attr("class","bar-male")
+        .attr("x", midX).attr("y", d => yScale(d.country))
+        .attr("width", 0).attr("height", yScale.bandwidth())
+        .attr("fill","#3b82f6").attr("rx",3).style("opacity",0.85)
+        .on("mouseover", function(ev,d){
+          ttShow(ev, `<b>${d.country}</b><br>男孩失学率：<span style="color:#3b82f6">${formatRate(d.male)}%</span><br>女孩比男孩高：${formatRate(d.gap)} 个百分点`);
+        })
+        .on("mousemove", ttMove)
+        .on("mouseout", ttHide)
+        .transition().duration(520).ease(d3.easeCubicOut)
+        .attr("width", d => xScale(d.male));
+
+      layer.selectAll(".country-label")
+        .data(nextDataset).enter().append("text").attr("class","country-label")
+        .attr("x", midX).attr("y", d => yScale(d.country) + yScale.bandwidth()/2 + 4)
+        .attr("text-anchor","middle").style("font-size","11px").style("font-weight","600")
+        .style("fill","#1e293b").style("pointer-events","none")
+        .style("opacity",0)
+        .text(d => d.country)
+        .transition().duration(380).delay(120).style("opacity",1);
+
+      layer.selectAll(".label-female")
+        .data(nextDataset).enter().append("text").attr("class","label-female")
+        .attr("x", d => midX - xScale(d.female) - 4)
+        .attr("y", d => yScale(d.country) + yScale.bandwidth()/2 + 4)
+        .attr("text-anchor","end").style("font-size","10px").style("fill","#e11d48")
+        .style("opacity",0)
+        .text(d => formatRate(d.female)+"%")
+        .transition().duration(380).delay(180).style("opacity",1);
+
+      layer.selectAll(".label-male")
+        .data(nextDataset).enter().append("text").attr("class","label-male")
+        .attr("x", d => midX + xScale(d.male) + 4)
+        .attr("y", d => yScale(d.country) + yScale.bandwidth()/2 + 4)
+        .attr("text-anchor","start").style("font-size","10px").style("fill","#2563eb")
+        .style("opacity",0)
+        .text(d => formatRate(d.male)+"%")
+        .transition().duration(380).delay(180).style("opacity",1);
+
+      if (animateIn) {
+        layer.transition().duration(280)
+          .style("opacity",1)
+          .attr("transform","translate(0,0)");
+      }
+    }
+
+    drawButterflyLayer(dataset);
+  }
+
+  // ============================================================
+  // 【模块二B】散点图（GPI 四象限）
+  // ============================================================
+  function renderScatterPlot(containerId, dataset) {
+    const container = d3.select(containerId);
+    container.html("");
+
+    if (!dataset || dataset.length === 0) {
+      container.append("div").attr("class","chart-loading").text("散点图数据不足");
+      return;
+    }
+
+    const node = container.node();
+    const width = Math.max(node.getBoundingClientRect().width || 500, 360);
+    const height = Math.max(node.getBoundingClientRect().height || 420, 380);
+    const margin = { top:38, right:36, bottom:56, left:64 };
+    const iW = width - margin.left - margin.right;
+    const iH = height - margin.top - margin.bottom;
+
+    const rootSvg = container.append("svg")
+      .attr("width",width).attr("height",height);
+    const svg = rootSvg.append("g").attr("transform",`translate(${margin.left},${margin.top})`);
+
+    const tooltip = d3.select("#global-tooltip");
+
+    const allPrim = dataset.map(d=>d.primary), allTert = dataset.map(d=>d.tertiary);
+    const xDomain = [Math.min(0.55, d3.min(allPrim)-0.06), Math.max(1.45, d3.max(allPrim)+0.06)];
+    const yDomain = [Math.min(0.2, d3.min(allTert)-0.08), Math.max(1.7, d3.max(allTert)+0.08)];
+
+    const xScale = d3.scaleLinear().domain(xDomain).range([0,iW]);
+    const yScale = d3.scaleLinear().domain(yDomain).range([iH,0]);
+    const colorScale = d3.scaleDiverging(d3.interpolateRdBu).domain([0.4, 1.0, 1.7]);
+
+    // 坐标轴
+    svg.append("g")
+      .attr("class","x-axis")
+      .attr("transform",`translate(0,${iH})`)
+      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d=>d.toFixed(2)))
+      .selectAll("text").style("font-size","10px").style("fill","#475569");
+    svg.append("g")
+      .attr("class","y-axis")
+      .call(d3.axisLeft(yScale).ticks(6).tickFormat(d=>d.toFixed(2)))
+      .selectAll("text").style("font-size","10px").style("fill","#475569");
+
+    // 轴标签
+    svg.append("text").attr("x",iW/2).attr("y",iH+42).attr("text-anchor","middle")
+      .style("font-size","12px").style("fill","#64748b").text("小学阶段 GPI（女孩/男孩）");
+    svg.append("text").attr("transform","rotate(-90)")
+      .attr("x",-iH/2).attr("y",-48).attr("text-anchor","middle")
+      .style("font-size","12px").style("fill","#64748b").text("高等教育 GPI（女孩/男孩）");
+
+    // 参考线 x=1, y=1
+    svg.append("line")
+      .attr("x1",xScale(1)).attr("x2",xScale(1)).attr("y1",0).attr("y2",iH)
+      .attr("stroke","#475569").attr("stroke-dasharray","6,4").attr("stroke-width",1.4);
+    svg.append("line")
+      .attr("x1",0).attr("x2",iW).attr("y1",yScale(1)).attr("y2",yScale(1))
+      .attr("stroke","#475569").attr("stroke-dasharray","6,4").attr("stroke-width",1.4);
+
+    // 象限说明
+    const noteG = svg.append("g")
+      .attr("transform", `translate(${iW - 220},6)`);
+    noteG.append("rect")
+      .attr("width",226).attr("height",58)
+      .attr("rx",10)
+      .attr("fill","rgba(255,255,255,0.86)")
+      .attr("stroke","#e2e8f0");
+    noteG.append("text")
+      .attr("x",12).attr("y",20)
+      .style("font-size","11px").style("font-weight","700").style("fill","#334155")
+      .text("读图提示");
+    noteG.append("text")
+      .attr("x",12).attr("y",38)
+      .style("font-size","10px").style("fill","#64748b")
+      .text("虚线右侧/上方表示女孩相对更多；");
+    noteG.append("text")
+      .attr("x",12).attr("y",52)
+      .style("font-size","10px").style("fill","#64748b")
+      .text("左侧/下方表示女孩相对较少。");
+
+    const dropLineG = svg.append("g").style("pointer-events","none");
+    const dropX = dropLineG.append("line")
+      .attr("stroke","#0f172a").attr("stroke-width",1.2).attr("stroke-dasharray","4,3").style("opacity",0);
+    const dropY = dropLineG.append("line")
+      .attr("stroke","#0f172a").attr("stroke-width",1.2).attr("stroke-dasharray","4,3").style("opacity",0);
+
+    function tooltipHtml(d) {
+      return `<div style="font-weight:700;margin-bottom:4px">${d.name}</div>
+        <div>小学阶段 GPI：<span style="color:#60a5fa;font-weight:700">${d.primary.toFixed(3)}</span> <span style="color:#94a3b8">(${d.primaryYear || "—"})</span></div>
+        <div>高等教育 GPI：<span style="color:#f472b6;font-weight:700">${d.tertiary.toFixed(3)}</span> <span style="color:#94a3b8">(${d.tertiaryYear || "—"})</span></div>`;
+    }
+
+    const points = svg.selectAll(".gpi-point")
+      .data(dataset, d => d.code)
+      .enter()
+      .append("circle")
+      .attr("class","gpi-point")
+      .attr("cx", xScale(1))
+      .attr("cy", yScale(1))
+      .attr("r", 6)
+      .attr("fill", d => colorScale(d.tertiary))
+      .attr("stroke","#fff")
+      .attr("stroke-width",1)
+      .style("opacity",0.78)
+      .on("mouseenter", function(ev,d){
+        const currentPoint = d3.select(this)
+          .interrupt("intro")
+          .attr("cx", xScale(d.primary))
+          .attr("cy", yScale(d.tertiary));
+
+        points.interrupt("hover")
+          .transition("hover").duration(160)
+          .style("opacity",0.16);
+        currentPoint
+          .raise()
+          .interrupt("hover")
+          .transition("hover").duration(160)
+          .attr("r",10)
+          .attr("fill","#f97316")
+          .attr("stroke","#7c2d12")
+          .attr("stroke-width",2)
+          .style("opacity",1);
+
+        const px = +currentPoint.attr("cx");
+        const py = +currentPoint.attr("cy");
+        dropX.interrupt()
+          .attr("x1",px).attr("x2",px).attr("y1",py).attr("y2",py)
+          .transition().duration(180)
+          .attr("y2",iH)
+          .style("opacity",0.85);
+        dropY.interrupt()
+          .attr("x1",px).attr("x2",px).attr("y1",py).attr("y2",py)
+          .transition().duration(180)
+          .attr("x2",0)
+          .style("opacity",0.85);
+
+        tooltip.interrupt().html(tooltipHtml(d))
+          .style("left",(ev.clientX+16)+"px")
+          .style("top",(ev.clientY-10)+"px")
+          .style("opacity",1);
+      })
+      .on("mousemove", ev => {
+        tooltip.style("left",(ev.clientX+16)+"px").style("top",(ev.clientY-10)+"px");
+      })
+      .on("mouseleave", function(){
+        points.interrupt("hover")
+          .transition("hover").duration(180)
+          .attr("r",6)
+          .attr("fill", d => colorScale(d.tertiary))
+          .attr("stroke","#fff")
+          .attr("stroke-width",1)
+          .style("opacity",0.78);
+        dropX.interrupt().transition().duration(150).style("opacity",0);
+        dropY.interrupt().transition().duration(150).style("opacity",0);
+        tooltip.transition().duration(220).style("opacity",0);
+      });
+
+    function playScatterIntro() {
+      points.transition("intro")
+        .duration(900)
+        .delay((d, i) => Math.min(i * 5, 500))
+        .ease(d3.easeCubicOut)
+        .attr("cx", d => xScale(d.primary))
+        .attr("cy", d => yScale(d.tertiary));
+    }
+
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          playScatterIntro();
+          observer.disconnect();
+        }
+      }, { threshold: 0.35 });
+      observer.observe(node);
+    } else {
+      playScatterIntro();
+    }
+
+    // 标注极端国家
+    const highlight = ["AFG","YEM","TCD","NER","USA","FRA","PHL","BGD"];
+    dataset.filter(d => highlight.includes(d.code)).forEach(d => {
+      svg.append("text")
+        .attr("x", xScale(d.primary)+8).attr("y", yScale(d.tertiary)+4)
+        .style("font-size","10px").style("fill","#475569").style("pointer-events","none").text(d.name);
+    });
+
+    // 图表标题
+    rootSvg.insert("text",":first-child")
+      .attr("x", margin.left + iW/2).attr("y",20)
+      .attr("text-anchor","middle").style("font-size","13px").style("font-weight","600").style("fill","#1e293b")
+      .text("小学与高等教育的性别平价对比");
+  }
+
+  // ============================================================
+  // 步骤三：底图渲染 + 国家点击交互
+  // ============================================================
+  function initStep3Interactions(geoFeatures) {
+    const detailPanel  = document.getElementById("vis-step3-detail");
+    const closeBtn     = document.getElementById("close-detail-btn");
+    const step3Section = document.getElementById("step-3");
+    const basemapEl    = document.getElementById("vis-step3-map");
+    const promptBox    = step3Section.querySelector(".step3-prompt");
+    if (!basemapEl) return;
+
+    let promptDismissed = false;
+
+    function hideStep3Prompt() {
+      if (promptBox) promptBox.classList.add("is-hidden");
+      basemapEl.classList.remove("dimmed");
+    }
+
+    // 滚动到步骤三时，地图变淡并显示操作提示。
+    const updateStep3Prompt = () => {
+      const rect = step3Section.getBoundingClientRect();
+      const shouldShowPrompt = rect.top < window.innerHeight * 0.4 && rect.bottom > 0;
+
+      if (shouldShowPrompt && !promptDismissed && detailPanel.classList.contains("hidden")) {
+        basemapEl.classList.add("dimmed");
+        if (promptBox) promptBox.classList.remove("is-hidden");
+      } else {
+        if (!promptDismissed && detailPanel.classList.contains("hidden")) {
+          basemapEl.classList.remove("dimmed");
+        }
+        if (!shouldShowPrompt) {
+          promptDismissed = false;
+          if (promptBox) promptBox.classList.add("is-hidden");
+        }
+      }
+    };
+    window.addEventListener("scroll", updateStep3Prompt);
+    updateStep3Prompt();
+
+    document.addEventListener("click", (ev) => {
+      if (!promptBox || promptBox.classList.contains("is-hidden")) return;
+      if (promptBox.contains(ev.target)) return;
+
+      promptDismissed = true;
+      hideStep3Prompt();
+      ev.preventDefault();
+      ev.stopPropagation();
+    }, true);
+
+    if (closeBtn) closeBtn.addEventListener("click", () => {
+      detailPanel.classList.add("hidden");
+      basemapEl.classList.remove("dimmed");
+    });
+
+    if (!geoFeatures || geoFeatures.length === 0) return;
+
+    // ---- 底图 SVG ----
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const baseSvg = d3.select(basemapEl)
+      .append("svg")
+      .attr("width", "100%").attr("height", "100%")
+      .attr("viewBox", `0 0 ${W} ${H}`)
+      .attr("preserveAspectRatio", "xMidYMid meet");
+
+    const fc = { type: "FeatureCollection", features: geoFeatures };
+    const mapPadding = Math.max(28, Math.min(W, H) * 0.045);
+    const proj = d3.geoEqualEarth().fitExtent(
+      [[mapPadding, mapPadding], [W - mapPadding, H - mapPadding]],
+      fc
+    );
+    const path = d3.geoPath().projection(proj);
+
+    baseSvg.append("rect").attr("width", W).attr("height", H).attr("fill", "#d9eaf7");
+
+    const latestMap   = GlobalCleanData.step3MapLatest;
+    const allVals     = Array.from(latestMap.values()).filter(v => !isNaN(v));
+    const valMin      = allVals.length ? d3.min(allVals) : 30;
+    const valMax      = allVals.length ? d3.max(allVals) : 100;
+
+    // 高完成率 → 绿色；低完成率 → 橙红
+    const colorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([valMin, valMax]);
+
+    function codeOf(d) { return ISO_NUM_TO_A3[+d.id] || null; }
+
+    const tooltip = d3.select("#global-tooltip");
+
+    baseSvg.selectAll("path")
+      .data(geoFeatures)
+      .enter().append("path")
+      .attr("d", path)
+      .attr("stroke", "#fff").attr("stroke-width", 0.5)
+      .attr("fill", d => {
+        const code = codeOf(d);
+        const val  = code ? latestMap.get(code) : null;
+        return (val != null && !isNaN(val)) ? colorScale(val) : "#d1d5db";
+      })
+      .style("cursor", d => {
+        const code = codeOf(d);
+        return (code && GlobalCleanData.step3CompletionByCountry.has(code)) ? "pointer" : "default";
+      })
+      .on("mouseover", function(ev, d) {
+        const code = codeOf(d);
+        if (!code) return;
+        const val  = latestMap.get(code);
+        const name = getCountryName(code, code);
+        d3.select(this).attr("stroke", "#1e293b").attr("stroke-width", 1.8);
+        tooltip.interrupt().html(
+          `<div style="font-weight:700;margin-bottom:4px">${name}</div>` +
+          (val != null
+            ? `<div>小学完成率：<span style="color:#4ade80;font-weight:bold">${val.toFixed(1)}%</span></div>`
+            : `<div style="color:#94a3b8">暂无数据</div>`) +
+          (val != null && val > 100
+            ? `<div style="font-size:11px;color:#fbbf24;margin-top:4px">超过 100% 多与超龄、留级、跨境入学或人口估计差异有关</div>`
+            : "") +
+          `<div style="font-size:11px;color:#94a3b8;margin-top:4px">点击查看多指标历史趋势</div>`
+        ).style("left", (ev.clientX + 16) + "px")
+         .style("top",  (ev.clientY - 10) + "px")
+         .style("opacity", "1");
+      })
+      .on("mousemove", ev => {
+        tooltip.style("left", (ev.clientX + 16) + "px").style("top", (ev.clientY - 10) + "px");
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.5);
+        tooltip.style("opacity", "0");
+      })
+      .on("click", function(ev, d) {
+        const code = codeOf(d);
+        if (!code || !GlobalCleanData.step3CompletionByCountry.has(code)) return;
+        const name = getCountryName(code, code);
+        document.getElementById("detail-country-title").textContent = name;
+        detailPanel.classList.remove("hidden");
+        basemapEl.classList.add("dimmed");
+        tooltip.style("opacity", "0");
+        renderCountryLineChart(code, name);
+      });
+
+    // ---- 图例 ----
+    const legendW = 160, legendH = 12;
+    const legendSel = d3.select(basemapEl).append("div")
+      .style("position",   "absolute")
+      .style("bottom",     "22px")
+      .style("left",       "22px")
+      .style("background", "rgba(255,255,255,0.88)")
+      .style("border-radius", "8px")
+      .style("padding",    "10px 14px")
+      .style("font-size",  "11px")
+      .style("color",      "#475569")
+      .style("box-shadow", "0 2px 8px rgba(0,0,0,0.08)");
+
+    legendSel.append("div")
+      .style("font-weight", "600").style("margin-bottom", "5px")
+      .text("小学完成率（最近一期，%）");
+
+    const lSvg = legendSel.append("svg").attr("width", legendW + 8).attr("height", legendH + 4);
+    const lgId = "step3-grad-" + Math.random().toString(36).slice(2, 6);
+    const defs = lSvg.append("defs");
+    const lg   = defs.append("linearGradient").attr("id", lgId).attr("x1", "0%").attr("x2", "100%");
+    lg.append("stop").attr("offset", "0%").attr("stop-color",   "#ef4444");
+    lg.append("stop").attr("offset", "50%").attr("stop-color",  "#facc15");
+    lg.append("stop").attr("offset", "100%").attr("stop-color", "#22c55e");
+    lSvg.append("rect")
+      .attr("x", 0).attr("y", 0)
+      .attr("width", legendW).attr("height", legendH)
+      .attr("rx", 5).attr("fill", `url(#${lgId})`);
+
+    legendSel.append("div")
+      .style("display", "flex").style("justify-content", "space-between")
+      .style("font-size", "10px").style("color", "#64748b")
+      .style("width", legendW + "px")
+      .html(`<span>${valMin.toFixed(0)}%</span><span style="color:#9ca3af">灰色=无数据</span><span>${valMax.toFixed(0)}%</span>`);
+    legendSel.append("div")
+      .style("margin-top", "6px")
+      .style("max-width", legendW + "px")
+      .style("font-size", "10px")
+      .style("line-height", "1.4")
+      .style("color", "#64748b")
+      .text("注：该指标可能超过 100%，不等同于真实毕业率。");
+  }
+
+  // ============================================================
+  // 步骤三：国家完成率多轨折线图
+  // ============================================================
+  function renderCountryLineChart(countryCode, countryName) {
+    const container = d3.select("#vis-line-chart");
+    container.html("");
+
+    const data = GlobalCleanData.step3CompletionByCountry.get(countryCode);
+    if (!data) {
+      container.append("div").attr("class", "chart-loading").text("暂无数据");
+      return;
+    }
+
+    const { primaryTotal, primaryFemale, primaryMale, tertiaryTotal, tertiaryFemale, tertiaryMale } = data;
+
+    // 不同阶段的完成情况：小学完成率 + 高等教育完成率。
+    const ALL_SERIES = [
+      { key: "pri-total",  label: "小学完成率（总体）", data: primaryTotal,  color: "#475569", dash: null,    w: 2,   dotThreshold: Infinity },
+      { key: "pri-female", label: "小学完成率（女）",   data: primaryFemale, color: "#e11d48", dash: null,    w: 2,   dotThreshold: Infinity },
+      { key: "pri-male",   label: "小学完成率（男）",   data: primaryMale,   color: "#2563eb", dash: null,    w: 2,   dotThreshold: Infinity },
+      { key: "ter-total",  label: "高等教育完成率（总体）", data: tertiaryTotal, color: "#7c3aed", dash: "6,3", w: 2.5, dotThreshold: 8 },
+      { key: "ter-female", label: "高等教育完成率（女）", data: tertiaryFemale, color: "#db2777", dash: "4,3", w: 2.2, dotThreshold: 8 },
+      { key: "ter-male", label: "高等教育完成率（男）", data: tertiaryMale, color: "#0f766e", dash: "2,3", w: 2.2, dotThreshold: 8 }
+    ].filter(s => s.data.length > 0);
+
+    if (ALL_SERIES.length === 0) {
+      container.append("div").attr("class", "chart-loading").text("该国暂无完成率数据");
+      return;
+    }
+
+    const node = container.node();
+    const totalW = Math.max(node.getBoundingClientRect().width  || 700, 420);
+    const totalH = Math.max(node.getBoundingClientRect().height || 320, 260);
+    const mg = { top: 18, right: 230, bottom: 48, left: 58 };
+    const iW = totalW - mg.left - mg.right;
+    const iH = totalH - mg.top  - mg.bottom;
+
+    const allPts  = ALL_SERIES.flatMap(s => s.data);
+    const xExtent = d3.extent(allPts, d => d.year);
+    const yRaw    = d3.max(allPts, d => d.value);
+    const yMax    = Math.max(105, Math.min(140, yRaw * 1.08));
+    const yMin    = Math.max(0,   d3.min(allPts, d => d.value) - 4);
+
+    const xScale = d3.scaleLinear().domain(xExtent).range([0, iW]);
+    const yScale = d3.scaleLinear().domain([yMin, yMax]).range([iH, 0]).nice();
+
+    const svg = container.append("svg").attr("width", totalW).attr("height", totalH);
+    const g   = svg.append("g").attr("transform", `translate(${mg.left},${mg.top})`);
+
+    // 网格
+    g.append("g").attr("class", "grid")
+      .attr("transform", `translate(0,${iH})`)
+      .call(d3.axisBottom(xScale).ticks(8).tickSize(-iH).tickFormat(""))
+      .call(ag => ag.select(".domain").remove())
+      .selectAll("line").attr("stroke", "#f1f5f9").attr("stroke-width", 1);
+    g.append("g").attr("class", "grid-y")
+      .call(d3.axisLeft(yScale).ticks(6).tickSize(-iW).tickFormat(""))
+      .call(ag => ag.select(".domain").remove())
+      .selectAll("line").attr("stroke", "#f1f5f9").attr("stroke-width", 1);
+
+    // 坐标轴
+    g.append("g")
+      .attr("transform", `translate(0,${iH})`)
+      .call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.format("d")))
+      .call(ag => { ag.selectAll("text").style("font-size","10px").style("fill","#64748b"); ag.select(".domain").attr("stroke","#e2e8f0"); });
+    g.append("g")
+      .call(d3.axisLeft(yScale).ticks(6).tickFormat(d => d + "%"))
+      .call(ag => { ag.selectAll("text").style("font-size","10px").style("fill","#64748b"); ag.select(".domain").attr("stroke","#e2e8f0"); });
+
+    // 轴标签
+    g.append("text")
+      .attr("x", iW / 2).attr("y", iH + 38).attr("text-anchor", "middle")
+      .style("font-size","11px").style("fill","#94a3b8").text("年份");
+    g.append("text")
+      .attr("transform","rotate(-90)").attr("x", -iH / 2).attr("y", -44).attr("text-anchor","middle")
+      .style("font-size","11px").style("fill","#94a3b8").text("完成率 (%)");
+
+    // 100% 参考线：该指标可能超过 100%，这里作为读图基准而不是截断线。
+    if (yMin < 100 && yMax > 85) {
+      g.append("line")
+        .attr("x1",0).attr("x2",iW).attr("y1",yScale(100)).attr("y2",yScale(100))
+        .attr("stroke","#cbd5e1").attr("stroke-dasharray","5,4").attr("stroke-width",1.2);
+      g.append("text").attr("x", iW + 3).attr("y", yScale(100) + 4)
+        .style("font-size","9px").style("fill","#94a3b8").text("100%参考");
+    }
+
+    // 显著超出 100% 的辅助线，提示读者这是口径带来的统计现象。
+    if (yScale.domain()[1] >= 130) {
+      g.append("line")
+        .attr("x1",0).attr("x2",iW).attr("y1",yScale(130)).attr("y2",yScale(130))
+        .attr("stroke","#fca5a5").attr("stroke-dasharray","3,3").attr("stroke-width",1);
+      g.append("text").attr("x", iW + 3).attr("y", yScale(130) + 4)
+        .style("font-size","9px").style("fill","#ef4444").text("130%");
+    }
+
+    // 折线 + 散点（稀疏数据）
+    const lineGen = d3.line()
+      .defined(d => !isNaN(d.value))
+      .x(d => xScale(d.year))
+      .y(d => yScale(d.value))
+      .curve(d3.curveMonotoneX);
+
+    const tooltip = d3.select("#global-tooltip");
+
+    ALL_SERIES.forEach(s => {
+      g.append("path")
+        .datum(s.data)
+        .attr("fill","none")
+        .attr("stroke", s.color)
+        .attr("stroke-width", s.w)
+        .attr("stroke-dasharray", s.dash || null)
+        .attr("stroke-linecap","round")
+        .attr("d", lineGen)
+        .style("opacity", 0.9);
+
+      // 数据点标记（高等教育时间点稀疏，始终显示；小学数据密集时不显示）
+      if (s.data.length <= s.dotThreshold) {
+        g.selectAll(`.dot-${s.key}`)
+          .data(s.data)
+          .enter().append("circle")
+          .attr("class", `dot-${s.key}`)
+          .attr("cx", d => xScale(d.year))
+          .attr("cy", d => yScale(d.value))
+          .attr("r",   4)
+          .attr("fill", s.color)
+          .attr("stroke","#fff").attr("stroke-width", 1.5)
+          .on("mouseover", function(ev, d) {
+            tooltip.interrupt().html(
+              `<div style="font-weight:700;margin-bottom:4px">${s.label}</div>` +
+              `<div>${d.year} 年：<span style="color:#fbbf24;font-weight:bold">${d.value.toFixed(1)}%</span></div>` +
+              (d.value > 100 ? `<div style="font-size:11px;color:#cbd5e1;margin-top:4px">超过 100% 通常与超龄、留级或跨境就学等统计口径有关。</div>` : "")
+            ).style("left",(ev.clientX+14)+"px").style("top",(ev.clientY-10)+"px").style("opacity","1");
+          })
+          .on("mousemove", ev => tooltip.style("left",(ev.clientX+14)+"px").style("top",(ev.clientY-10)+"px"))
+          .on("mouseout", () => tooltip.style("opacity","0"));
+      }
+    });
+
+    // 图例
+    const legendG = svg.append("g").attr("transform", `translate(${mg.left + iW + 14},${mg.top + 4})`);
+    ALL_SERIES.forEach((s, i) => {
+      const row = legendG.append("g").attr("transform", `translate(0,${i * 26})`);
+      row.append("line")
+        .attr("x1",0).attr("x2",22).attr("y1",9).attr("y2",9)
+        .attr("stroke", s.color).attr("stroke-width", s.w)
+        .attr("stroke-dasharray", s.dash || null);
+      row.append("text")
+        .attr("x",27).attr("y",13)
+        .style("font-size","10px").style("fill","#334155")
+        .text(s.label);
+    });
+
+    // 数据说明
+    const noteBaseY = ALL_SERIES.length * 26 + 18;
+    legendG.append("text")
+      .attr("x",0).attr("y", noteBaseY)
+      .style("font-size","10px").style("fill","#64748b")
+      .text("小学完成率为毛代理指标");
+    legendG.append("text")
+      .attr("x",0).attr("y", noteBaseY + 15)
+      .style("font-size","10px").style("fill","#94a3b8")
+      .text(">100% 多为结构性统计现象");
+
+    const hasGap = primaryFemale.length > 0 && primaryMale.length > 0;
+    if (hasGap) {
+      const yr = xExtent[1];
+      const fLast = primaryFemale.filter(d => d.year === yr);
+      const mLast = primaryMale.filter(d => d.year === yr);
+      if (fLast.length && mLast.length) {
+        const gap = (fLast[0].value - mLast[0].value).toFixed(1);
+        legendG.append("text")
+          .attr("x",0).attr("y", noteBaseY + 40)
+          .style("font-size","10px").style("fill","#94a3b8")
+          .text(`最新性别差（女-男）：${gap > 0 ? "+" : ""}${gap}%`);
+      }
+    }
+  }
+  </script>
+</body>
+</html>
